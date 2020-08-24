@@ -54,12 +54,13 @@ namespace Consumer
             switch (version)
             {
                 case 1:
-                    Run_Consumer<Protos.v1.Person>(consumerOptions.Brokers, topics, cts.Token);
+                    Run_Consumer<Protos.v1.Key, Protos.v1.Person>(consumerOptions.Brokers, topics, cts.Token);
                     break;
             }
         }
 
-        public static void Run_Consumer<TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
+        public static void Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
+            where TKey : class, IMessage<TKey>, new()
             where TValue : class, IMessage<TValue>, new()
         {
             var config = new ConsumerConfig
@@ -75,7 +76,7 @@ namespace Consumer
 
             const int commitPeriod = 5;
 
-            using (var consumer = new ConsumerBuilder<string, TValue>(config)
+            using (var consumer = new ConsumerBuilder<TKey, TValue>(config)
                 .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
                 .SetPartitionsAssignedHandler((c, partitions) =>
                 {
@@ -86,6 +87,7 @@ namespace Consumer
                     Console.WriteLine($"Revoking assignment: [{string.Join(", ", partitions)}]");
                 })
                 // Set value Protobuf deserializer
+                .SetKeyDeserializer(new ProtobufDeserializer<TKey>().AsSyncOverAsync())
                 .SetValueDeserializer(new ProtobufDeserializer<TValue>().AsSyncOverAsync())
                 .Build())
             {
@@ -135,18 +137,20 @@ namespace Consumer
             }
         }
 
-        private static void PrintConsumeResult<TValue>(ConsumeResult<string, TValue> consumeResult)
+        private static void PrintConsumeResult<TKey, TValue>(ConsumeResult<TKey, TValue> consumeResult)
             where TValue : class, IMessage<TValue>, new()
         {
             var key = consumeResult.Message.Key;
             var id = 0;
             var name = string.Empty;
-            GoogleTimestamp createdOn = null;
             if (consumeResult.Message.Value is Protos.v1.Person val1)
             {
-                id = val1.Id;
+                id = val1.PersonId;
                 name = val1.Name;
-                createdOn = val1.CreatedOn;
+            }
+            if (consumeResult.Message.Key is Protos.v1.Key key1)
+            {
+                id = key1.PersonId;
             }
             // if (consumeResult.Message.Value is Protos.v2.HelloReply val2)
             // {
@@ -170,7 +174,7 @@ namespace Consumer
             //     var dt = DateTime.SpecifyKind(DateTime.Parse(val5.DateTimeStamp), DateTimeKind.Utc);
             //     ts = GoogleTimestamp.FromDateTime(dt);
             // }
-            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: {key} (key) {id} {name} {createdOn}");
+            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: {id} (key) {name}");
         }
 
         static async Task CreateTopicAsync(string brokerList, List<string> topics)
