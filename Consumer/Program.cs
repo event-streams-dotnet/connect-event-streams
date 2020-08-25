@@ -53,7 +53,7 @@ namespace Consumer
             switch (version)
             {
                 case 1:
-                    Run_Consumer<Key, Person>(consumerOptions.Brokers, topics, cts.Token);
+                    Run_Consumer<Key, Value>(consumerOptions.Brokers, topics, cts.Token);
                     break;
             }
         }
@@ -137,23 +137,24 @@ namespace Consumer
         }
 
         private static void PrintConsumeResult<TKey, TValue>(ConsumeResult<TKey, TValue> consumeResult)
+            where TKey : class, new()
             where TValue : class, new()
         {
-            var key = consumeResult.Message.Key;
-            var id = 0;
+            long key = 0;
+            long id = 0;
             var name = string.Empty;
             var favColor = string.Empty;
-            var age = 0;
-            if (consumeResult.Message.Value is Person val1)
+            long age = 0;
+            if (consumeResult.Message.Value is Value val1)
             {
-                id = val1.PersonId;
-                name = val1.Name;
-                favColor = val1.FavoriteColor;
-                age = val1.Age;
+                id = val1.After.PersonId;
+                name = val1.After.Name;
+                favColor = val1.After.FavoriteColor;
+                age = val1.After.Age;
             }
             if (consumeResult.Message.Key is Key key1)
             {
-                id = key1.PersonId;
+                key = key1.PersonId;
             }
             // if (consumeResult.Message.Value is Protos.v2.HelloReply val2)
             // {
@@ -177,7 +178,7 @@ namespace Consumer
             //     var dt = DateTime.SpecifyKind(DateTime.Parse(val5.DateTimeStamp), DateTimeKind.Utc);
             //     ts = GoogleTimestamp.FromDateTime(dt);
             // }
-            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: {id} (key) {name} {favColor} {age}");
+            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age}");
         }
 
         static async Task CreateTopicAsync(string brokerList, List<string> topics)
