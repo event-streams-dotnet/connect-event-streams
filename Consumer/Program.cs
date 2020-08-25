@@ -143,10 +143,14 @@ namespace Consumer
             var key = consumeResult.Message.Key;
             var id = 0;
             var name = string.Empty;
+            var favColor = string.Empty;
+            var age = 0;
             if (consumeResult.Message.Value is Protos.v1.Person val1)
             {
                 id = val1.PersonId;
                 name = val1.Name;
+                favColor = val1.FavoriteColor;
+                age = val1.Age;
             }
             if (consumeResult.Message.Key is Protos.v1.Key key1)
             {
@@ -174,7 +178,7 @@ namespace Consumer
             //     var dt = DateTime.SpecifyKind(DateTime.Parse(val5.DateTimeStamp), DateTimeKind.Utc);
             //     ts = GoogleTimestamp.FromDateTime(dt);
             // }
-            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: {id} (key) {name}");
+            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: {id} (key) {name} {favColor} {age}");
         }
 
         static async Task CreateTopicAsync(string brokerList, List<string> topics)

@@ -39,12 +39,19 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
       - Connection **password**: mypassword
 
 2. Create `person` table.
-   - Select **source-database**, schemas, public.
-   - Right-click on Tables, select Create Table.
-     - Name: person
-     - Add column: **id**, integer, not null, primary key
-     - Add column: **name**, text, not null
-     - Add column: **created_on**: time without time zone
+   - Select **source-database**.
+   - Right-click and select Query Tool.
+   - Execute script to create table.
+   ```sql
+   CREATE TABLE public.person
+   (
+      person_id integer NOT NULL,
+      name text COLLATE pg_catalog."default" NOT NULL,
+      favorite_color text COLLATE pg_catalog."default",
+      age integer,
+      CONSTRAINT person_pkey PRIMARY KEY (person_id)
+   )
+   ```
 
 3. Register Postgres source connector.
    - Postgres connector [documentation](https://docs.confluent.io/current/connect/debezium-connect-postgres/postgres_source_connector_config.html).
@@ -60,8 +67,8 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
    - Open **pgAdmin** and run the following SQL.
    ```sql
    INSERT INTO public.person(
-      id, name, created_on)
-      VALUES (1, 'John Doe', now());
+      person_id, name, favorite_color, age)
+      VALUES (1, 'Tony Sneed', 'Green', 29);
    ```
    - Run the Consumer app to read the topic produced by the source connector.
      - Press Enter to accept the default topic.
