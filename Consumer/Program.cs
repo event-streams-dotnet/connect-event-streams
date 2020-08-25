@@ -2,9 +2,8 @@
 using Confluent.Kafka.Admin;
 using Confluent.Kafka.SyncOverAsync;
 using Confluent.SchemaRegistry.Serdes;
-using Google.Protobuf;
-using GoogleTimestamp = Google.Protobuf.WellKnownTypes.Timestamp;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,14 +53,14 @@ namespace Consumer
             switch (version)
             {
                 case 1:
-                    Run_Consumer<Protos.v1.Key, Protos.v1.Person>(consumerOptions.Brokers, topics, cts.Token);
+                    Run_Consumer<Key, Person>(consumerOptions.Brokers, topics, cts.Token);
                     break;
             }
         }
 
         public static void Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
-            where TKey : class, IMessage<TKey>, new()
-            where TValue : class, IMessage<TValue>, new()
+            where TKey : class, new()
+            where TValue : class, new()
         {
             var config = new ConsumerConfig
             {
@@ -87,8 +86,8 @@ namespace Consumer
                     Console.WriteLine($"Revoking assignment: [{string.Join(", ", partitions)}]");
                 })
                 // Set value Protobuf deserializer
-                .SetKeyDeserializer(new ProtobufDeserializer<TKey>().AsSyncOverAsync())
-                .SetValueDeserializer(new ProtobufDeserializer<TValue>().AsSyncOverAsync())
+                .SetKeyDeserializer(new JsonDeserializer<TKey>().AsSyncOverAsync())
+                .SetValueDeserializer(new JsonDeserializer<TValue>().AsSyncOverAsync())
                 .Build())
             {
                 consumer.Subscribe(topics);
@@ -138,21 +137,21 @@ namespace Consumer
         }
 
         private static void PrintConsumeResult<TKey, TValue>(ConsumeResult<TKey, TValue> consumeResult)
-            where TValue : class, IMessage<TValue>, new()
+            where TValue : class, new()
         {
             var key = consumeResult.Message.Key;
             var id = 0;
             var name = string.Empty;
             var favColor = string.Empty;
             var age = 0;
-            if (consumeResult.Message.Value is Protos.v1.Person val1)
+            if (consumeResult.Message.Value is Person val1)
             {
                 id = val1.PersonId;
                 name = val1.Name;
                 favColor = val1.FavoriteColor;
                 age = val1.Age;
             }
-            if (consumeResult.Message.Key is Protos.v1.Key key1)
+            if (consumeResult.Message.Key is Key key1)
             {
                 id = key1.PersonId;
             }

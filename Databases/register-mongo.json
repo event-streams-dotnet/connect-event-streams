@@ -7,8 +7,8 @@
         "connection.uri":"mongodb://root:rootpassword@mongo:27017",
         "database":"sink-database",
         "collection":"person",
-        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-        "value.converter.schemas.enable": "false"
+        "key.converter": "io.confluent.connect.json.JsonSchemaConverter",
+        "value.converter": "io.confluent.connect.json.JsonSchemaConverter",
+        "value.converter.schemas.enable": "true"
     }
 }
