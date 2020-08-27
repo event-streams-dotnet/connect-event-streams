@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Consumer", "Consumer\Consumer.csproj", "{6CC72346-5E0B-4D9E-97CE-25C9D76FECE2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TransferTest", "TransferTest\TransferTest.csproj", "{6CC72346-5E0B-4D9E-97CE-25C9D76FECE2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{ED1B23BF-CC45-4314-8208-BD83EBEAB4BB}"
 	ProjectSection(SolutionItems) = preProject
@@ -12,13 +12,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		ReadMe.md = ReadMe.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProtoLibrary", "ProtoLibrary\ProtoLibrary.csproj", "{2D367870-BB44-4715-9DE9-8713484E7547}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Databases", "Databases", "{32098910-2CEF-48F7-A692-ABF0D8A378F0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Connectors", "Connectors", "{32098910-2CEF-48F7-A692-ABF0D8A378F0}"
 	ProjectSection(SolutionItems) = preProject
-		Databases\docker-compose.yml = Databases\docker-compose.yml
-		Databases\register-mongo.json = Databases\register-mongo.json
-		Databases\register-postgres.json = Databases\register-postgres.json
+		Connectors\docker-compose.yml = Connectors\docker-compose.yml
+		Connectors\register-mongo.json = Connectors\register-mongo.json
+		Connectors\register-postgres.json = Connectors\register-postgres.json
 	EndProjectSection
 EndProject
 Global

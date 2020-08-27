@@ -1,9 +1,9 @@
 ﻿using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Confluent.Kafka.SyncOverAsync;
+using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Consumer
+namespace TransferTest
 {
     class Program
     {
@@ -24,11 +24,14 @@ namespace Consumer
                 cts.Cancel();
             };
 
-            // Get consumer options
+            // Get consumer and producer options
             var config = LoadConfiguration();
             var consumerOptions = config
                 .GetSection(nameof(ConsumerOptions))
                 .Get<ConsumerOptions>();
+            var producerOptions = config
+                .GetSection(nameof(ProducerOptions))
+                .Get<ProducerOptions>();
 
             // Create topics
             await CreateTopicAsync(consumerOptions.Brokers, consumerOptions.TopicsList);
@@ -49,16 +52,24 @@ namespace Consumer
                 return;
             Console.WriteLine($"Schema version: {version}");
 
-            // Consume events
+            var message = new Message<Sink.Key, Sink.Value>
+            {
+                Timestamp = new Timestamp(1598287171361, TimestampType.CreateTime),
+                Headers = new Headers(),
+                Key = new Sink.Key { PersonId = 1 },
+                Value = new Sink.Value { PersonId = 1, Name = "Tony Sneed", FavoriteColor = "Green", Age = 29 }
+            };
+
             switch (version)
             {
                 case 1:
-                    Run_Consumer<Key, Value>(consumerOptions.Brokers, topics, cts.Token);
+                    // var consumeResult = Run_Consumer<Key, Value>(consumerOptions.Brokers, topics, cts.Token);
+                    await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
                     break;
             }
         }
 
-        public static void Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
+        public static ConsumeResult<TKey, TValue> Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
             where TKey : class, new()
             where TValue : class, new()
         {
@@ -121,6 +132,7 @@ namespace Consumer
                                     Console.WriteLine($"Commit error: {e.Error.Reason}");
                                 }
                             }
+                            return consumeResult;
                         }
                         catch (ConsumeException e)
                         {
@@ -133,9 +145,43 @@ namespace Consumer
                     Console.WriteLine("Closing consumer.");
                     consumer.Close();
                 }
+                return null;
             }
         }
 
+        private static async Task Run_Producer<TKey, TValue>(string brokerList, string topicName, 
+            string schemaRegistryUrl, Message<TKey, TValue> message)
+            where TKey : class, new()
+            where TValue : class, new()
+        {
+            var config = new ProducerConfig { BootstrapServers = brokerList };
+            var schemaRegistryConfig = new SchemaRegistryConfig { Url = schemaRegistryUrl };
+
+            using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
+            using (var producer = new ProducerBuilder<TKey, TValue>(config)
+                .SetKeySerializer(new JsonSerializer<TKey>(schemaRegistry))
+                .SetValueSerializer(new JsonSerializer<TValue>(schemaRegistry))
+                .Build())
+            {
+                try
+                {
+                    // Note: Awaiting the asynchronous produce request below prevents flow of execution
+                    // from proceeding until the acknowledgement from the broker is received (at the 
+                    // expense of low throughput).
+                    var deliveryReport = await producer.ProduceAsync(topicName, message);
+
+                    Console.WriteLine($"delivered to: {deliveryReport.TopicPartitionOffset} for producer: {producer.Name}");
+                }
+                catch (ProduceException<int, TValue> e)
+                {
+                    Console.WriteLine($"failed to deliver message: {e.Message} [{e.Error.Code}]");
+                }
+
+                // Since we are producing synchronously, at this point there will be no messages
+                // in-flight and no delivery reports waiting to be acknowledged, so there is no
+                // need to call producer.Flush before disposing the producer.
+            }
+        }
         private static void PrintConsumeResult<TKey, TValue>(ConsumeResult<TKey, TValue> consumeResult)
             where TKey : class, new()
             where TValue : class, new()
@@ -145,40 +191,48 @@ namespace Consumer
             var name = string.Empty;
             var favColor = string.Empty;
             long age = 0;
-            if (consumeResult.Message.Value is Value val1)
+            if (consumeResult.Message.Value is Source.Value val1)
             {
                 id = val1.After.PersonId;
                 name = val1.After.Name;
                 favColor = val1.After.FavoriteColor;
                 age = val1.After.Age;
             }
-            if (consumeResult.Message.Key is Key key1)
+            if (consumeResult.Message.Key is Source.Key key1)
             {
                 key = key1.PersonId;
             }
-            // if (consumeResult.Message.Value is Protos.v2.HelloReply val2)
-            // {
-            //     msg = val2.Message;
-            //     tmp = val2.TemperatureF != null ? $"at {val2.TemperatureF} degrees" : string.Empty;
-            // }
-            // if (consumeResult.Message.Value is Protos.v3.HelloReply val3)
-            // {
-            //     msg = val3.Message;
-            //     tmp = val3.TemperatureF != null ? $"at {val3.TemperatureF} degrees" : string.Empty;
-            //     ts = val3.DateTimeStamp;
-            // }
-            // if (consumeResult.Message.Value is Protos.v4.HelloReply val4)
-            // {
-            //     msg = val4.Message;
-            //     ts = val4.DateTimeStamp;
-            // }
-            // if (consumeResult.Message.Value is Protos.v5.HelloReply val5)
-            // {
-            //     msg = val5.Message;
-            //     var dt = DateTime.SpecifyKind(DateTime.Parse(val5.DateTimeStamp), DateTimeKind.Utc);
-            //     ts = GoogleTimestamp.FromDateTime(dt);
-            // }
             Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age}");
+        }
+
+        private static TValue CreateMessageValue<TValue>(string msg)
+            where TValue : class, new()
+        {
+            int? tmp = new Random().Next(-32, 100);
+            // var ts = GoogleTimestamp.FromDateTime(DateTime.UtcNow);
+            var val = new TValue();
+            // if (val is IHelloReply val1)
+            // {
+            //     val1.Message = msg;
+            // };
+            // if (val is IHelloReply_2 val2)
+            // {
+            //     val2.TemperatureF = tmp;
+            // };
+            // if (val is IHelloReply_3 val3)
+            // {
+            //     val3.TemperatureF = tmp;
+            //     val3.DateTimeStamp = ts;
+            // };
+            // if (val is IHelloReply_4 val4)
+            // {
+            //     val4.DateTimeStamp = ts;
+            // };
+            // if (val is IHelloReply_5 val5)
+            // {
+            //     val5.DateTimeStamp = DateTime.UtcNow.ToLongTimeString();
+            // };
+            return val;
         }
 
         static async Task CreateTopicAsync(string brokerList, List<string> topics)

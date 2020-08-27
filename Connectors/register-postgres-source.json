@@ -8,7 +8,7 @@
         "database.user": "postgres",
         "database.password": "mypassword",
         "database.dbname" : "source-database",
-        "database.server.name": "dbserver1",
-        "plugin.name": "pgoutput"
+        "database.server.name": "demo_source",
+        "plugin.name": "wal2json"
     }
 }

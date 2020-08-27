@@ -1,8 +1,7 @@
-namespace Consumer
+namespace TransferTest.Source
 {
     using System;
     using System.Collections.Generic;
-
     using System.Globalization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -86,14 +85,14 @@ namespace Consumer
         public object Xmin { get; set; }
     }
 
-    public partial class Envelope
+    public partial class SourceEnvelope
     {
-        public static Envelope[] FromJson(string json) => JsonConvert.DeserializeObject<Envelope[]>(json, Consumer.Converter.Settings);
+        public static SourceEnvelope[] FromJson(string json) => JsonConvert.DeserializeObject<SourceEnvelope[]>(json, TransferTest.Source.Converter.Settings);
     }
 
     public static class Serialize
     {
-        public static string ToJson(this Envelope[] self) => JsonConvert.SerializeObject(self, Consumer.Converter.Settings);
+        public static string ToJson(this SourceEnvelope[] self) => JsonConvert.SerializeObject(self, TransferTest.Source.Converter.Settings);
     }
 
     internal static class Converter
