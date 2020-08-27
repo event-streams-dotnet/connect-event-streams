@@ -3,7 +3,7 @@ using Confluent.Kafka.Admin;
 using Confluent.Kafka.SyncOverAsync;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
-using demo_source.@public.person;
+using demo_source.@public.person.Value;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ namespace TransferTest
 {
     class Program
     {
-        public static async Task Main(string[] args)
+        public static void Main(string[] args)
         {
             // Prevent the process from terminating
             CancellationTokenSource cts = new CancellationTokenSource();
@@ -35,7 +35,7 @@ namespace TransferTest
                 .Get<ProducerOptions>();
 
             // Create topics
-            await CreateTopicAsync(consumerOptions.Brokers, consumerOptions.TopicsList);
+            // await CreateTopicAsync(consumerOptions.Brokers, consumerOptions.TopicsList);
 
             // Confirm topic
             Console.WriteLine($"Press Ctrl-C to quit.");
@@ -53,26 +53,21 @@ namespace TransferTest
                 return;
             Console.WriteLine($"Schema version: {version}");
 
-            // var message = new Message<Sink.Key, Sink.Value>
-            // {
-            //     Timestamp = new Timestamp(1598287171361, TimestampType.CreateTime),
-            //     Headers = new Headers(),
-            //     Key = new Sink.Key { PersonId = 1 },
-            //     Value = new Sink.Value { PersonId = 1, Name = "Tony Sneed", FavoriteColor = "Green", Age = 29 }
-            // };
-
             switch (version)
             {
                 case 1:
-                    var consumeResult = Run_Consumer<Key, Value>(consumerOptions.Brokers, topics, consumerOptions.SchemaRegistryUrl, cts.Token);
+                    var x = Run_Consumer<Ignore, person>(consumerOptions.Brokers, topics, consumerOptions.SecurityProtocol,
+                        consumerOptions.SaslMechanism, consumerOptions.SaslUsername, consumerOptions.SaslPassword,
+                        consumerOptions.SchemaRegistryUrl, cts.Token);
                     // await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
                     break;
             }
         }
 
         public static ConsumeResult<TKey, TValue> Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, 
+            SecurityProtocol securityProtocol, SaslMechanism saslMechanism, string saslUsername, string saslPassword,
             string schemaRegistryUrl, CancellationToken cancellationToken)
-            where TKey : class, new()
+            // where TKey : class, new()
             where TValue : class, new()
         {
             var config = new ConsumerConfig
@@ -83,10 +78,19 @@ namespace TransferTest
                 StatisticsIntervalMs = 5000,
                 SessionTimeoutMs = 6000,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnablePartitionEof = true
+                EnablePartitionEof = true,
+                SecurityProtocol = securityProtocol,
+                SaslMechanism = saslMechanism,
+                SaslUsername = saslUsername,
+                SaslPassword = saslPassword
             };
             const int commitPeriod = 5;
-            var schemaRegistryConfig = new SchemaRegistryConfig { Url = schemaRegistryUrl };
+            var schemaRegistryConfig = new SchemaRegistryConfig
+            {
+                Url = schemaRegistryUrl,
+                BasicAuthCredentialsSource = AuthCredentialsSource.UserInfo,
+                BasicAuthUserInfo = "XT3S2ODODDUVGA4P:oMn9Z88WzhcfXlvYtTw++tHSYcq4/uObsob3fSH4x8hZXKiEKVUZNovdcATBvMb/"
+            };
 
             using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
             using (var consumer = new ConsumerBuilder<TKey, TValue>(config)
@@ -100,7 +104,7 @@ namespace TransferTest
                     Console.WriteLine($"Revoking assignment: [{string.Join(", ", partitions)}]");
                 })
                 // Set value Protobuf deserializer
-                .SetKeyDeserializer(new AvroDeserializer<TKey>(schemaRegistry).AsSyncOverAsync())
+                // .SetKeyDeserializer(new AvroDeserializer<TKey>(schemaRegistry).AsSyncOverAsync())
                 .SetValueDeserializer(new AvroDeserializer<TValue>(schemaRegistry).AsSyncOverAsync())
                 .Build())
             {
@@ -186,26 +190,28 @@ namespace TransferTest
             }
         }
         private static void PrintConsumeResult<TKey, TValue>(ConsumeResult<TKey, TValue> consumeResult)
-            where TKey : class, new()
+            // where TKey : class, new()
             where TValue : class, new()
         {
             long key = 0;
             long id = 0;
             var name = string.Empty;
             var favColor = string.Empty;
-            long age = 0;
-            // if (consumeResult.Message.Value is Source.Value val1)
-            // {
-            //     id = val1.After.PersonId;
-            //     name = val1.After.Name;
-            //     favColor = val1.After.FavoriteColor;
-            //     age = val1.After.Age;
-            // }
+            int? age = 0;
+            DateTime ts = DateTime.MinValue;
+            if (consumeResult.Message.Value is person val1)
+            {
+                id = val1.person_id;
+                name = val1.name;
+                favColor = val1.favorite_color;
+                age = val1.age;
+                ts = val1.created_on;
+            }
             // if (consumeResult.Message.Key is Source.Key key1)
             // {
             //     key = key1.PersonId;
             // }
-            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age}");
+            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age} Created On: {ts.ToShortTimeString()}");
         }
 
         private static TValue CreateMessageValue<TValue>(string msg)

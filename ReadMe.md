@@ -40,6 +40,7 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
       name text COLLATE pg_catalog."default" NOT NULL,
       favorite_color text COLLATE pg_catalog."default",
       age integer,
+      created_on timestamp without time zone NOT NULL,
       CONSTRAINT person_pkey PRIMARY KEY (person_id)
    )
    ```
@@ -56,8 +57,8 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
    - Open **pgAdmin** and run the following SQL.
    ```sql
    INSERT INTO public.person(
-      person_id, name, favorite_color, age)
-      VALUES (1, 'Tony Sneed', 'Green', 29);
+      person_id, name, favorite_color, age, created_on)
+      VALUES (1, 'Tony Sneed', 'Green', 29, now());
    ```
 
 5. Create classes in **Consumer** based on the JSON message.

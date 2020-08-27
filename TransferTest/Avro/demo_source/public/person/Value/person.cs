@@ -5,7 +5,7 @@
 //    is regenerated
 // </auto-generated>
 // ------------------------------------------------------------------------------
-namespace demo_source.@public.person
+namespace demo_source.@public.person.Value
 {
 	using System;
 	using System.Collections.Generic;
@@ -13,18 +13,59 @@ namespace demo_source.@public.person
 	using global::Avro;
 	using global::Avro.Specific;
 	
-	public partial class Value : ISpecificRecord
+	public partial class person : ISpecificRecord
 	{
-		public static Schema _SCHEMA = Schema.Parse(@"{""type"":""record"",""name"":""Value"",""namespace"":""demo_source.public.person"",""fields"":[{""name"":""person_id"",""type"":""int""},{""name"":""name"",""type"":""string""},{""name"":""favorite_color"",""default"":null,""type"":[""null"",""string""]},{""name"":""age"",""default"":null,""type"":[""null"",""int""]}],""connect.name"":""demo_source.public.person.Value""}");
+		public static Schema _SCHEMA = Schema.Parse(@"{
+  'type': 'record',
+  'name': 'person',
+  'fields': [
+    {
+      'name': 'person_id',
+      'type': 'int'
+    },
+    {
+      'name': 'name',
+      'type': 'string'
+    },
+    {
+      'name': 'favorite_color',
+      'type': [
+        'null',
+        'string'
+      ],
+      'default': null
+    },
+    {
+      'name': 'age',
+      'type': [
+        'null',
+        'int'
+      ],
+      'default': null
+    },
+    {
+      'name': 'created_on',
+      'type': {
+        'type': 'long',
+        'connect.name': 'org.apache.kafka.connect.data.Timestamp',
+        'connect.version': 1,
+        'logicalType': 'timestamp-millis'
+      }
+    }
+  ],
+  'connect.name': 'person'
+}
+");
 		private int _person_id;
 		private string _name;
 		private string _favorite_color;
 		private System.Nullable<int> _age;
+		private DateTime _created_on;
 		public virtual Schema Schema
 		{
 			get
 			{
-				return Value._SCHEMA;
+				return person._SCHEMA;
 			}
 		}
 		public int person_id
@@ -71,6 +112,17 @@ namespace demo_source.@public.person
 				this._age = value;
 			}
 		}
+		public DateTime created_on
+		{
+			get
+			{
+				return this._created_on;
+			}
+			set
+			{
+				this._created_on = value;
+			}
+		}
 		public virtual object Get(int fieldPos)
 		{
 			switch (fieldPos)
@@ -79,6 +131,7 @@ namespace demo_source.@public.person
 			case 1: return this.name;
 			case 2: return this.favorite_color;
 			case 3: return this.age;
+			case 4: return this.created_on;
 			default: throw new AvroRuntimeException("Bad index " + fieldPos + " in Get()");
 			};
 		}
@@ -90,6 +143,7 @@ namespace demo_source.@public.person
 			case 1: this.name = (System.String)fieldValue; break;
 			case 2: this.favorite_color = (System.String)fieldValue; break;
 			case 3: this.age = (System.Nullable<int>)fieldValue; break;
+			case 4: this.created_on = (DateTime)fieldValue; break;
 			default: throw new AvroRuntimeException("Bad index " + fieldPos + " in Put()");
 			};
 		}
