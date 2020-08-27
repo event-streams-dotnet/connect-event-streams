@@ -68,7 +68,7 @@ namespace TransferTest
             switch (version)
             {
                 case 1:
-                    var consumeResult = Run_Consumer<Ignore, Protos.Source.v1.Envelope.Types.Value>(consumerOptions.Brokers, topics, cts.Token);
+                    var consumeResult = Run_Consumer<Ignore, Protos.Source.v1.Value.Types.After>(consumerOptions.Brokers, topics, cts.Token);
                     // var consumeResult = Run_Consumer<SourceKey, SourceValue>(consumerOptions.Brokers, topics, cts.Token);
                     // await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
                     break;
