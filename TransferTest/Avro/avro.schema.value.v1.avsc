@@ -1,0 +1,171 @@
+{
+    "connect.name": "demo_source.public.person.Envelope",
+    "fields": [
+        {
+            "default": null,
+            "name": "before",
+            "type": [
+                "null",
+                {
+                    "connect.name": "demo_source.public.person.Value",
+                    "fields": [
+                        {
+                            "name": "person_id",
+                            "type": "int"
+                        },
+                        {
+                            "name": "name",
+                            "type": "string"
+                        },
+                        {
+                            "default": null,
+                            "name": "favorite_color",
+                            "type": [
+                                "null",
+                                "string"
+                            ]
+                        },
+                        {
+                            "default": null,
+                            "name": "age",
+                            "type": [
+                                "null",
+                                "int"
+                            ]
+                        }
+                    ],
+                    "name": "Value",
+                    "type": "record"
+                }
+            ]
+        },
+        {
+            "default": null,
+            "name": "after",
+            "type": [
+                "null",
+                "Value"
+            ]
+        },
+        {
+            "name": "source",
+            "type": {
+                "connect.name": "io.debezium.connector.postgresql.Source",
+                "fields": [
+                    {
+                        "name": "version",
+                        "type": "string"
+                    },
+                    {
+                        "name": "connector",
+                        "type": "string"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "name": "ts_ms",
+                        "type": "long"
+                    },
+                    {
+                        "default": "false",
+                        "name": "snapshot",
+                        "type": [
+                            {
+                                "connect.default": "false",
+                                "connect.name": "io.debezium.data.Enum",
+                                "connect.parameters": {
+                                    "allowed": "true,last,false"
+                                },
+                                "connect.version": 1,
+                                "type": "string"
+                            },
+                            "null"
+                        ]
+                    },
+                    {
+                        "name": "db",
+                        "type": "string"
+                    },
+                    {
+                        "name": "schema",
+                        "type": "string"
+                    },
+                    {
+                        "name": "table",
+                        "type": "string"
+                    },
+                    {
+                        "default": null,
+                        "name": "txId",
+                        "type": [
+                            "null",
+                            "long"
+                        ]
+                    },
+                    {
+                        "default": null,
+                        "name": "lsn",
+                        "type": [
+                            "null",
+                            "long"
+                        ]
+                    },
+                    {
+                        "default": null,
+                        "name": "xmin",
+                        "type": [
+                            "null",
+                            "long"
+                        ]
+                    }
+                ],
+                "name": "Source",
+                "namespace": "io.debezium.connector.postgresql",
+                "type": "record"
+            }
+        },
+        {
+            "name": "op",
+            "type": "string"
+        },
+        {
+            "default": null,
+            "name": "ts_ms",
+            "type": [
+                "null",
+                "long"
+            ]
+        },
+        {
+            "default": null,
+            "name": "transaction",
+            "type": [
+                "null",
+                {
+                    "fields": [
+                        {
+                            "name": "id",
+                            "type": "string"
+                        },
+                        {
+                            "name": "total_order",
+                            "type": "long"
+                        },
+                        {
+                            "name": "data_collection_order",
+                            "type": "long"
+                        }
+                    ],
+                    "name": "ConnectDefault",
+                    "namespace": "io.confluent.connect.avro",
+                    "type": "record"
+                }
+            ]
+        }
+    ],
+    "name": "Envelope",
+    "namespace": "demo_source.public.person",
+    "type": "record"
+}

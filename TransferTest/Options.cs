@@ -6,6 +6,7 @@ namespace TransferTest
     {
         public string Brokers { get; set; }
         public List<string> TopicsList { get; set; }
+        public string SchemaRegistryUrl { get; set; }
     }
 
     public class ProducerOptions
