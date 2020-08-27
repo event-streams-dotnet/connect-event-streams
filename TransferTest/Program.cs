@@ -3,6 +3,7 @@ using Confluent.Kafka.Admin;
 using Confluent.Kafka.SyncOverAsync;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
+using Google.Protobuf;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
+// Aliases
+// using SourceKey = Protos.Source.v1.Key;
+// using SourceValue = Protos.Source.v1.Value;
 
 namespace TransferTest
 {
@@ -52,26 +57,27 @@ namespace TransferTest
                 return;
             Console.WriteLine($"Schema version: {version}");
 
-            var message = new Message<Sink.Key, Sink.Value>
-            {
-                Timestamp = new Timestamp(1598287171361, TimestampType.CreateTime),
-                Headers = new Headers(),
-                Key = new Sink.Key { PersonId = 1 },
-                Value = new Sink.Value { PersonId = 1, Name = "Tony Sneed", FavoriteColor = "Green", Age = 29 }
-            };
+            // var message = new Message<Sink.Key, Sink.Value>
+            // {
+            //     Timestamp = new Timestamp(1598287171361, TimestampType.CreateTime),
+            //     Headers = new Headers(),
+            //     Key = new Sink.Key { PersonId = 1 },
+            //     Value = new Sink.Value { PersonId = 1, Name = "Tony Sneed", FavoriteColor = "Green", Age = 29 }
+            // };
 
             switch (version)
             {
                 case 1:
-                    // var consumeResult = Run_Consumer<Key, Value>(consumerOptions.Brokers, topics, cts.Token);
-                    await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
+                    var consumeResult = Run_Consumer<Ignore, Protos.Source.v1.Envelope.Types.Value>(consumerOptions.Brokers, topics, cts.Token);
+                    // var consumeResult = Run_Consumer<SourceKey, SourceValue>(consumerOptions.Brokers, topics, cts.Token);
+                    // await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
                     break;
             }
         }
 
         public static ConsumeResult<TKey, TValue> Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
-            where TKey : class, new()
-            where TValue : class, new()
+            // where TKey : class, IMessage<TKey>, new()
+            where TValue : class, IMessage<TValue>, new()
         {
             var config = new ConsumerConfig
             {
@@ -97,8 +103,8 @@ namespace TransferTest
                     Console.WriteLine($"Revoking assignment: [{string.Join(", ", partitions)}]");
                 })
                 // Set value Protobuf deserializer
-                .SetKeyDeserializer(new JsonDeserializer<TKey>().AsSyncOverAsync())
-                .SetValueDeserializer(new JsonDeserializer<TValue>().AsSyncOverAsync())
+                // .SetKeyDeserializer(new ProtobufDeserializer<TKey>().AsSyncOverAsync())
+                .SetValueDeserializer(new ProtobufDeserializer<TValue>().AsSyncOverAsync())
                 .Build())
             {
                 consumer.Subscribe(topics);
@@ -119,7 +125,7 @@ namespace TransferTest
                                 continue;
                             }
 
-                            PrintConsumeResult(consumeResult);
+                            // PrintConsumeResult(consumeResult);
 
                             if (consumeResult.Offset % commitPeriod == 0)
                             {
@@ -151,16 +157,16 @@ namespace TransferTest
 
         private static async Task Run_Producer<TKey, TValue>(string brokerList, string topicName, 
             string schemaRegistryUrl, Message<TKey, TValue> message)
-            where TKey : class, new()
-            where TValue : class, new()
+            where TKey : class, IMessage<TKey>, new()
+            where TValue : class, IMessage<TValue>, new()
         {
             var config = new ProducerConfig { BootstrapServers = brokerList };
             var schemaRegistryConfig = new SchemaRegistryConfig { Url = schemaRegistryUrl };
 
             using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
             using (var producer = new ProducerBuilder<TKey, TValue>(config)
-                .SetKeySerializer(new JsonSerializer<TKey>(schemaRegistry))
-                .SetValueSerializer(new JsonSerializer<TValue>(schemaRegistry))
+                .SetKeySerializer(new ProtobufSerializer<TKey>(schemaRegistry))
+                .SetValueSerializer(new ProtobufSerializer<TValue>(schemaRegistry))
                 .Build())
             {
                 try
@@ -191,17 +197,17 @@ namespace TransferTest
             var name = string.Empty;
             var favColor = string.Empty;
             long age = 0;
-            if (consumeResult.Message.Value is Source.Value val1)
-            {
-                id = val1.After.PersonId;
-                name = val1.After.Name;
-                favColor = val1.After.FavoriteColor;
-                age = val1.After.Age;
-            }
-            if (consumeResult.Message.Key is Source.Key key1)
-            {
-                key = key1.PersonId;
-            }
+            // if (consumeResult.Message.Value is Source.Value val1)
+            // {
+            //     id = val1.After.PersonId;
+            //     name = val1.After.Name;
+            //     favColor = val1.After.FavoriteColor;
+            //     age = val1.After.Age;
+            // }
+            // if (consumeResult.Message.Key is Source.Key key1)
+            // {
+            //     key = key1.PersonId;
+            // }
             Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age}");
         }
 

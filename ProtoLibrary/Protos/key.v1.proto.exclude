@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+option csharp_namespace = "Protos.Source.v1";
+
+message Key {
+  int32 person_id = 1;
+}

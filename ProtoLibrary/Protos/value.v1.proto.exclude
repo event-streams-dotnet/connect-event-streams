@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option csharp_namespace = "Protos.Source.v1";
+
+message Value {
+  After before = 1;
+  After after = 2;
+  Source source = 3;
+  string op = 4;
+  int64 ts_ms = 5;
+
+  message After {
+    int32 person_id = 1;
+    string name = 2;
+    string favorite_color = 3;
+    int32 age = 4;
+  }
+
+  message Source {
+    string version = 1;
+    string connector = 2;
+    string name = 3;
+    int64 ts_ms = 4;
+    string snapshot = 5;
+    string db = 6;
+    string schema = 7;
+    string table = 8;
+    int64 txId = 9;
+    int64 lsn = 10;
+    int64 xmin = 11;
+  }
+}
