@@ -289,9 +289,10 @@ namespace TransferTest
 
         private static IConfiguration LoadConfiguration()
         {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{environmentName}.json"  , optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
             return builder.Build();
         }
