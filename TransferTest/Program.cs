@@ -230,7 +230,8 @@ namespace TransferTest
             // {
             //     key = key1.PersonId;
             // }
-            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age} Created On: {ts.ToShortTimeString()}");
+            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, " +
+                $"Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age} Created On: {ts.ToShortTimeString()}");
         }
 
         private static TValue CreateMessageValue<TValue>(string msg)
@@ -292,7 +293,8 @@ namespace TransferTest
             var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile($"appsettings.{environmentName}.json"  , optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
             return builder.Build();
         }
