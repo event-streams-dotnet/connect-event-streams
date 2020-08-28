@@ -16,7 +16,7 @@ namespace TransferTest
 {
     class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // Prevent the process from terminating
             CancellationTokenSource cts = new CancellationTokenSource();
@@ -27,6 +27,9 @@ namespace TransferTest
 
             // Get consumer and producer options
             var config = LoadConfiguration();
+            var brokerOptions = config
+                .GetSection(nameof(BrokerOptions))
+                .Get<BrokerOptions>();
             var consumerOptions = config
                 .GetSection(nameof(ConsumerOptions))
                 .Get<ConsumerOptions>();
@@ -40,33 +43,35 @@ namespace TransferTest
             // Confirm topic
             Console.WriteLine($"Press Ctrl-C to quit.");
             Console.WriteLine($"\nDefault topic: {consumerOptions.TopicsList[0]}");
-            Console.WriteLine("> Confirm: <Enter>, New value<Enter>");
-            var topic = Console.ReadLine();
-            if (topic.Length == 0)
-                topic = consumerOptions.TopicsList[0];
-            var topics = new List<string> { topic };
-            Console.WriteLine($"Topic: {topic}");
+            // Console.WriteLine("> Confirm: <Enter>, New value<Enter>");
+            // var consumerTopic = Console.ReadLine();
+            // if (consumerTopic.Length == 0)
+            //     consumerTopic = consumerOptions.TopicsList[0];
+            var consumerTopics = new List<string> { consumerOptions.TopicsList[0] };
+            // Console.WriteLine($"Topic: {consumerTopic}");
 
             // Get schema version number
-            Console.WriteLine("\nEnter schema version number:");
-            if (!int.TryParse(Console.ReadLine(), out int version))
-                return;
-            Console.WriteLine($"Schema version: {version}");
+            // Console.WriteLine("\nEnter schema version number:");
+            // if (!int.TryParse(Console.ReadLine(), out int version))
+            //     return;
+            // Console.WriteLine($"Schema version: {version}");
 
-            switch (version)
+            var consumeResult = Run_Consumer<Ignore, person>(brokerOptions.Brokers, consumerTopics, brokerOptions.SecurityProtocol,
+                brokerOptions.SaslMechanism, brokerOptions.SaslUsername, brokerOptions.SaslPassword,
+                brokerOptions.SchemaRegistryUrl, brokerOptions.SchemaRegistryAuth ,cts.Token);
+            var message = new Message<int, person>
             {
-                case 1:
-                    var x = Run_Consumer<Ignore, person>(consumerOptions.Brokers, topics, consumerOptions.SecurityProtocol,
-                        consumerOptions.SaslMechanism, consumerOptions.SaslUsername, consumerOptions.SaslPassword,
-                        consumerOptions.SchemaRegistryUrl, cts.Token);
-                    // await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
-                    break;
-            }
+                Key = consumeResult.Message.Value.person_id,
+                Value = consumeResult.Message.Value
+            };
+            await Run_Producer<int, person>(brokerOptions.Brokers, producerOptions.Topic, brokerOptions.SecurityProtocol,
+                brokerOptions.SaslMechanism, brokerOptions.SaslUsername, brokerOptions.SaslPassword,
+                brokerOptions.SchemaRegistryUrl, brokerOptions.SchemaRegistryAuth, message);
         }
 
         public static ConsumeResult<TKey, TValue> Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, 
             SecurityProtocol securityProtocol, SaslMechanism saslMechanism, string saslUsername, string saslPassword,
-            string schemaRegistryUrl, CancellationToken cancellationToken)
+            string schemaRegistryUrl, string basicAuthUserInfo, CancellationToken cancellationToken)
             // where TKey : class, new()
             where TValue : class, new()
         {
@@ -89,7 +94,7 @@ namespace TransferTest
             {
                 Url = schemaRegistryUrl,
                 BasicAuthCredentialsSource = AuthCredentialsSource.UserInfo,
-                BasicAuthUserInfo = "XT3S2ODODDUVGA4P:oMn9Z88WzhcfXlvYtTw++tHSYcq4/uObsob3fSH4x8hZXKiEKVUZNovdcATBvMb/"
+                BasicAuthUserInfo = basicAuthUserInfo
             };
 
             using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
@@ -157,12 +162,26 @@ namespace TransferTest
         }
 
         private static async Task Run_Producer<TKey, TValue>(string brokerList, string topicName, 
-            string schemaRegistryUrl, Message<TKey, TValue> message)
-            where TKey : class, new()
+            SecurityProtocol securityProtocol, SaslMechanism saslMechanism, string saslUsername, string saslPassword,
+            string schemaRegistryUrl, string basicAuthUserInfo, Message<TKey, TValue> message)
+            // where TKey : class, new()
             where TValue : class, new()
         {
-            var config = new ProducerConfig { BootstrapServers = brokerList };
-            var schemaRegistryConfig = new SchemaRegistryConfig { Url = schemaRegistryUrl };
+            var config = new ProducerConfig
+            {
+                BootstrapServers = brokerList,
+                SecurityProtocol = securityProtocol,
+                SaslMechanism = saslMechanism,
+                SaslUsername = saslUsername,
+                SaslPassword = saslPassword
+            };
+
+            var schemaRegistryConfig = new SchemaRegistryConfig
+            {
+                Url = schemaRegistryUrl,
+                BasicAuthCredentialsSource = AuthCredentialsSource.UserInfo,
+                BasicAuthUserInfo = basicAuthUserInfo
+            };
 
             using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
             using (var producer = new ProducerBuilder<TKey, TValue>(config)

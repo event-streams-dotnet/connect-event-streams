@@ -1,14 +1,15 @@
 {
     "connector.class": "MongoDbAtlasSink",
     "name": "MongoDbAtlasSinkConnector_0",
-    "input.data.format": "JSON",
+    "input.data.format": "AVRO",
+    "kafka.api.key": "****************",
+    "kafka.api.secret": "****************************************************************",
     "topics": [
-        "demo-accounts",
-        "demo-person"
+      "schema-person-sink"
     ],
     "connection.host": "cluster0-4aooi.mongodb.net",
     "connection.user": "kafka-connect",
     "database": "sink-database",
-    "collection": "demo-person",
+    "collection": "demo-person-sink",
     "tasks.max": "1"
-}
+  }
