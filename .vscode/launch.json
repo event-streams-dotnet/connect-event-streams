@@ -5,7 +5,7 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "Transfer Test",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -21,10 +21,20 @@
             }
         },
         {
-            "name": ".NET Core Attach",
+            "name": "Worker",
             "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}"
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/Worker/bin/Debug/netcoreapp3.1/Worker.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Worker",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
         }
     ]
 }

@@ -120,3 +120,6 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
    ```
    - Open the Control Center to validate that a message was written to the `sink-person-data` topic.
    - Open **Mongo Express** to validate that a record was written to the `person` collection in `sink-database`.
+
+## Worker
+

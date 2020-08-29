@@ -43,7 +43,7 @@ namespace TransferTest
             Console.WriteLine($"\nDefault topic: {consumerOptions.TopicsList[0]}");
             var consumerTopics = new List<string> { consumerOptions.TopicsList[0] };
 
-            await Run_Consumer<Protos.Source.v1.Key, Protos.Source.v1.person>(brokerOptions.Brokers, consumerTopics, producerOptions.Topic,
+            await Run_Consumer<Protos.Sink.v1.Key, Protos.Source.v1.person>(brokerOptions.Brokers, consumerTopics, producerOptions.Topic,
                 brokerOptions.SecurityProtocol, brokerOptions.SaslMechanism, brokerOptions.SaslUsername, brokerOptions.SaslPassword,
                 brokerOptions.SchemaRegistryUrl, brokerOptions.SchemaRegistryAuth ,cts.Token);
         }
@@ -217,7 +217,7 @@ namespace TransferTest
             var key = new TKey();
             if (value is Protos.Source.v1.person val1)
             {
-                if (key is Protos.Source.v1.Key key1)
+                if (key is Protos.Sink.v1.Key key1)
                 {
                     key1.PersonId = val1.PersonId;
                 }
