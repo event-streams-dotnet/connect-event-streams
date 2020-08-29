@@ -6,8 +6,9 @@ import "google/protobuf/timestamp.proto";
 
 message person {
   int32 person_id = 1;
-  string name = 2;
-  string favorite_color = 3;
-  int32 age = 4;
-  google.protobuf.Timestamp created_on = 5;
+  string first_name = 2;
+  string last_name = 3;
+  string favorite_color = 4;
+  int32 age = 5;
+  google.protobuf.Timestamp row_version = 6;
 }

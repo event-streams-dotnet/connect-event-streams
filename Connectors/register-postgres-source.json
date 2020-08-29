@@ -1,21 +1,18 @@
-"connector.class": "PostgresSource",
-"name": "PostgresSourceConnector_1",
-"kafka.api.key": "",
-"kafka.api.secret": "",
-"topic.prefix": "schema-proto-",
-"connection.host": "confluent-poc-postgres.cgqehjmteh2s.eu-west-1.rds.amazonaws.com",
-"connection.port": "5432",
-"connection.user": "postgres",
-"db.name": "postgres",
-"table.whitelist": [
-    "person"
-],
-"timestamp.column.name": "created_on",
-"table.types": [
-    "TABLE"
-],
-"schema.pattern": "public",
-"db.timezone": "UTC",
-"output.data.format": "PROTOBUF",
-"tasks.max": "1"
-}
+{
+    "name": "postgres-source",
+    "config": {
+      "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+      "tasks.max": "1",
+      "key.converter": "io.confluent.connect.protobuf.ProtobufConverter",
+      "key.converter.schema.registry.url": "http://schema-registry:8081",
+      "value.converter": "io.confluent.connect.protobuf.ProtobufConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "connection.url": "jdbc:postgresql://postgres:5432/source-database",
+      "connection.user": "postgres",
+      "connection.password": "mypassword",
+      "mode": "timestamp+incrementing",
+      "incrementing.column.name": "person_id",
+      "timestamp.column.name": "row_version",
+      "topic.prefix": "source-data-"
+    }
+  }

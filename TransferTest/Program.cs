@@ -63,10 +63,10 @@ namespace TransferTest
                 SessionTimeoutMs = 6000,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 EnablePartitionEof = true,
-                SecurityProtocol = securityProtocol,
-                SaslMechanism = saslMechanism,
-                SaslUsername = saslUsername,
-                SaslPassword = saslPassword
+                // SecurityProtocol = securityProtocol,
+                // SaslMechanism = saslMechanism,
+                // SaslUsername = saslUsername,
+                // SaslPassword = saslPassword
             };
 
             const int commitPeriod = 5;
@@ -145,16 +145,16 @@ namespace TransferTest
             var config = new ProducerConfig
             {
                 BootstrapServers = brokerList,
-                SecurityProtocol = securityProtocol,
-                SaslMechanism = saslMechanism,
-                SaslUsername = saslUsername,
-                SaslPassword = saslPassword
+                // SecurityProtocol = securityProtocol,
+                // SaslMechanism = saslMechanism,
+                // SaslUsername = saslUsername,
+                // SaslPassword = saslPassword
             };
             var schemaRegistryConfig = new SchemaRegistryConfig
             {
                 Url = schemaRegistryUrl,
-                BasicAuthCredentialsSource = AuthCredentialsSource.UserInfo,
-                BasicAuthUserInfo = basicAuthUserInfo
+                // BasicAuthCredentialsSource = AuthCredentialsSource.UserInfo,
+                // BasicAuthUserInfo = basicAuthUserInfo
             };
 
             using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
@@ -188,24 +188,26 @@ namespace TransferTest
         {
             long key = 0;
             long id = 0;
-            var name = string.Empty;
+            var first_name = string.Empty;
+            var last_name = string.Empty;
             var favColor = string.Empty;
             int age = 0;
             GoogleTimestamp ts = new GoogleTimestamp();
             if (consumeResult.Message.Value is Protos.Source.v1.person val1)
             {
                 id = val1.PersonId;
-                name = val1.Name;
+                first_name = val1.FirstName;
+                last_name = val1.LastName;
                 favColor = val1.FavoriteColor;
                 age = val1.Age;
-                ts = val1.CreatedOn;
+                ts = val1.RowVersion;
             }
             // if (consumeResult.Message.Key is Source.Key key1)
             // {
             //     key = key1.PersonId;
             // }
             Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, " +
-                $"Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age} Created On: {ts.ToDateTime().ToShortTimeString()}");
+                $"Id: {id}, Name: {first_name} {last_name}, Fav Color: {favColor}, Age: {age} RowVersion: {ts}");
         }
 
         static Message<TKey, TValue> CreateMessage<TKey, TValue>(TValue value)
