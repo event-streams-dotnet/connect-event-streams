@@ -4,6 +4,7 @@ using Confluent.Kafka.SyncOverAsync;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 using Google.Protobuf;
+using GoogleTimestamp = Google.Protobuf.WellKnownTypes.Timestamp;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
-// Aliases
-// using SourceKey = Protos.Source.v1.Key;
-// using SourceValue = Protos.Source.v1.Value;
 
 namespace TransferTest
 {
@@ -31,6 +28,9 @@ namespace TransferTest
 
             // Get consumer and producer options
             var config = LoadConfiguration();
+            var brokerOptions = config
+                .GetSection(nameof(BrokerOptions))
+                .Get<BrokerOptions>();
             var consumerOptions = config
                 .GetSection(nameof(ConsumerOptions))
                 .Get<ConsumerOptions>();
@@ -38,45 +38,20 @@ namespace TransferTest
                 .GetSection(nameof(ProducerOptions))
                 .Get<ProducerOptions>();
 
-            // Create topics
-            await CreateTopicAsync(consumerOptions.Brokers, consumerOptions.TopicsList);
-
             // Confirm topic
             Console.WriteLine($"Press Ctrl-C to quit.");
             Console.WriteLine($"\nDefault topic: {consumerOptions.TopicsList[0]}");
-            Console.WriteLine("> Confirm: <Enter>, New value<Enter>");
-            var topic = Console.ReadLine();
-            if (topic.Length == 0)
-                topic = consumerOptions.TopicsList[0];
-            var topics = new List<string> { topic };
-            Console.WriteLine($"Topic: {topic}");
+            var consumerTopics = new List<string> { consumerOptions.TopicsList[0] };
 
-            // Get schema version number
-            Console.WriteLine("\nEnter schema version number:");
-            if (!int.TryParse(Console.ReadLine(), out int version))
-                return;
-            Console.WriteLine($"Schema version: {version}");
-
-            // var message = new Message<Sink.Key, Sink.Value>
-            // {
-            //     Timestamp = new Timestamp(1598287171361, TimestampType.CreateTime),
-            //     Headers = new Headers(),
-            //     Key = new Sink.Key { PersonId = 1 },
-            //     Value = new Sink.Value { PersonId = 1, Name = "Tony Sneed", FavoriteColor = "Green", Age = 29 }
-            // };
-
-            switch (version)
-            {
-                case 1:
-                    var consumeResult = Run_Consumer<Ignore, Protos.Source.v1.Value.Types.After>(consumerOptions.Brokers, topics, cts.Token);
-                    // var consumeResult = Run_Consumer<SourceKey, SourceValue>(consumerOptions.Brokers, topics, cts.Token);
-                    // await Run_Producer<Sink.Key, Sink.Value>(producerOptions.Brokers, producerOptions.Topic, producerOptions.SchemaRegistryUrl, message);
-                    break;
-            }
+            await Run_Consumer<Protos.Source.v1.Key, Protos.Source.v1.person>(brokerOptions.Brokers, consumerTopics, producerOptions.Topic,
+                brokerOptions.SecurityProtocol, brokerOptions.SaslMechanism, brokerOptions.SaslUsername, brokerOptions.SaslPassword,
+                brokerOptions.SchemaRegistryUrl, brokerOptions.SchemaRegistryAuth ,cts.Token);
         }
 
-        public static ConsumeResult<TKey, TValue> Run_Consumer<TKey, TValue>(string brokerList, List<string> topics, CancellationToken cancellationToken)
-            // where TKey : class, IMessage<TKey>, new()
+        public static async Task Run_Consumer<TKey, TValue>(string brokerList, List<string> consumerTopics, string producerTopic,
+            SecurityProtocol securityProtocol, SaslMechanism saslMechanism, string saslUsername, string saslPassword,
+            string schemaRegistryUrl, string basicAuthUserInfo, CancellationToken cancellationToken)
+            where TKey : class, IMessage<TKey>, new()
             where TValue : class, IMessage<TValue>, new()
         {
             var config = new ConsumerConfig
@@ -87,12 +62,16 @@ namespace TransferTest
                 StatisticsIntervalMs = 5000,
                 SessionTimeoutMs = 6000,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnablePartitionEof = true
+                EnablePartitionEof = true,
+                SecurityProtocol = securityProtocol,
+                SaslMechanism = saslMechanism,
+                SaslUsername = saslUsername,
+                SaslPassword = saslPassword
             };
 
             const int commitPeriod = 5;
 
-            using (var consumer = new ConsumerBuilder<TKey, TValue>(config)
+            using (var consumer = new ConsumerBuilder<Ignore, TValue>(config)
                 .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
                 .SetPartitionsAssignedHandler((c, partitions) =>
                 {
@@ -107,7 +86,7 @@ namespace TransferTest
                 .SetValueDeserializer(new ProtobufDeserializer<TValue>().AsSyncOverAsync())
                 .Build())
             {
-                consumer.Subscribe(topics);
+                consumer.Subscribe(consumerTopics);
 
                 try
                 {
@@ -125,7 +104,7 @@ namespace TransferTest
                                 continue;
                             }
 
-                            // PrintConsumeResult(consumeResult);
+                            PrintConsumeResult(consumeResult);
 
                             if (consumeResult.Offset % commitPeriod == 0)
                             {
@@ -138,7 +117,9 @@ namespace TransferTest
                                     Console.WriteLine($"Commit error: {e.Error.Reason}");
                                 }
                             }
-                            return consumeResult;
+
+                            await Run_Producer<TKey, TValue>(brokerList, producerTopic, securityProtocol, saslMechanism, 
+                                saslUsername, saslPassword, schemaRegistryUrl, basicAuthUserInfo, consumeResult.Message);
                         }
                         catch (ConsumeException e)
                         {
@@ -151,17 +132,30 @@ namespace TransferTest
                     Console.WriteLine("Closing consumer.");
                     consumer.Close();
                 }
-                return null;
             }
         }
 
         private static async Task Run_Producer<TKey, TValue>(string brokerList, string topicName, 
-            string schemaRegistryUrl, Message<TKey, TValue> message)
+            SecurityProtocol securityProtocol, SaslMechanism saslMechanism, string saslUsername, string saslPassword,
+            string schemaRegistryUrl, string basicAuthUserInfo, Message<Ignore, TValue> consumerMessage)
             where TKey : class, IMessage<TKey>, new()
             where TValue : class, IMessage<TValue>, new()
         {
-            var config = new ProducerConfig { BootstrapServers = brokerList };
-            var schemaRegistryConfig = new SchemaRegistryConfig { Url = schemaRegistryUrl };
+            var message = CreateMessage<TKey, TValue>(consumerMessage.Value);
+            var config = new ProducerConfig
+            {
+                BootstrapServers = brokerList,
+                SecurityProtocol = securityProtocol,
+                SaslMechanism = saslMechanism,
+                SaslUsername = saslUsername,
+                SaslPassword = saslPassword
+            };
+            var schemaRegistryConfig = new SchemaRegistryConfig
+            {
+                Url = schemaRegistryUrl,
+                BasicAuthCredentialsSource = AuthCredentialsSource.UserInfo,
+                BasicAuthUserInfo = basicAuthUserInfo
+            };
 
             using (var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig))
             using (var producer = new ProducerBuilder<TKey, TValue>(config)
@@ -189,56 +183,49 @@ namespace TransferTest
             }
         }
         private static void PrintConsumeResult<TKey, TValue>(ConsumeResult<TKey, TValue> consumeResult)
-            where TKey : class, new()
+            // where TKey : class, new()
             where TValue : class, new()
         {
             long key = 0;
             long id = 0;
             var name = string.Empty;
             var favColor = string.Empty;
-            long age = 0;
-            // if (consumeResult.Message.Value is Source.Value val1)
-            // {
-            //     id = val1.After.PersonId;
-            //     name = val1.After.Name;
-            //     favColor = val1.After.FavoriteColor;
-            //     age = val1.After.Age;
-            // }
+            int age = 0;
+            GoogleTimestamp ts = new GoogleTimestamp();
+            if (consumeResult.Message.Value is Protos.Source.v1.person val1)
+            {
+                id = val1.PersonId;
+                name = val1.Name;
+                favColor = val1.FavoriteColor;
+                age = val1.Age;
+                ts = val1.CreatedOn;
+            }
             // if (consumeResult.Message.Key is Source.Key key1)
             // {
             //     key = key1.PersonId;
             // }
-            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age}");
+            Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: Key: {key}, " +
+                $"Id: {id}, Name: {name}, Fav Color: {favColor}, Age: {age} Created On: {ts.ToDateTime().ToShortTimeString()}");
         }
 
-        private static TValue CreateMessageValue<TValue>(string msg)
-            where TValue : class, new()
+        static Message<TKey, TValue> CreateMessage<TKey, TValue>(TValue value)
+            where TKey : class, IMessage<TKey>, new()
+            where TValue : class, IMessage<TValue>, new()
         {
-            int? tmp = new Random().Next(-32, 100);
-            // var ts = GoogleTimestamp.FromDateTime(DateTime.UtcNow);
-            var val = new TValue();
-            // if (val is IHelloReply val1)
-            // {
-            //     val1.Message = msg;
-            // };
-            // if (val is IHelloReply_2 val2)
-            // {
-            //     val2.TemperatureF = tmp;
-            // };
-            // if (val is IHelloReply_3 val3)
-            // {
-            //     val3.TemperatureF = tmp;
-            //     val3.DateTimeStamp = ts;
-            // };
-            // if (val is IHelloReply_4 val4)
-            // {
-            //     val4.DateTimeStamp = ts;
-            // };
-            // if (val is IHelloReply_5 val5)
-            // {
-            //     val5.DateTimeStamp = DateTime.UtcNow.ToLongTimeString();
-            // };
-            return val;
+            var key = new TKey();
+            if (value is Protos.Source.v1.person val1)
+            {
+                if (key is Protos.Source.v1.Key key1)
+                {
+                    key1.PersonId = val1.PersonId;
+                }
+            }
+            var message = new Message<TKey, TValue>
+            {
+                Key = key,
+                Value = value
+            };
+            return message;
         }
 
         static async Task CreateTopicAsync(string brokerList, List<string> topics)
@@ -267,9 +254,11 @@ namespace TransferTest
 
         private static IConfiguration LoadConfiguration()
         {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
             return builder.Build();
         }
