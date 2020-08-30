@@ -12,6 +12,33 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
 3. Open a browser to http://localhost:9021/.
    - Verify the cluster is healthy. (This may take a few minutes.)
 
+## Docker Compose
+
+> **Note**: If the **mongo-express** service exits, simply bring the services down and up again. At times volumes may not be properly unmounted, in which case you need to remove them by running: `docker-compose down --volumes`.
+
+1. Inspect the **docker-compose.yml** file in the solution root directory.
+   - This is based on the [confluent/cp-all-in-one](https://github.com/confluentinc/cp-all-in-one) Github repository, but it has some significant modifications.
+   - Services for **zookeeper**, **broker**, **schema-registry** and **control-center** are unchanged.
+   - In the **connect** service the key and value converters are set to use Protobuf.
+      ```yaml
+      CONNECT_KEY_CONVERTER: io.confluent.connect.protobuf.ProtobufConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.protobuf.ProtobufConverter
+      ```
+   - The **connect** service also has a `build` directive that uses a **Dockerfile** at the solution root.
+      ```yaml
+      build: ./
+      ```
+   - The Dockerfile installs the `jdbc` and `mongodb` connectors on the `confluentinc/cp-kafka-connect-base` image.
+      ```docker
+      FROM confluentinc/cp-kafka-connect-base:5.5.1
+      RUN  confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:5.5.1
+      RUN  confluent-hub install --no-prompt mongodb/kafka-connect-mongodb:1.2.0
+      ```
+   - The following services are added for databases and their admin tools: **postgres**, **pgadmin**, **mongo**, **mongo-express**.
+     - Postgres and MongoDB admin tools can be used via a web browser.
+
+   > **Note**: The Postgres docker image used is [debezium/postgres](https://hub.docker.com/r/debezium/postgres), which has the [decoderbufs](https://debezium.io/documentation/reference/1.2/connectors/postgresql.html) output plugin installed.
+
 ## Source Connector
 
 1. Open **pgadmin** and connect to **postgres**.
