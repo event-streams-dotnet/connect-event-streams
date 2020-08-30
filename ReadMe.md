@@ -2,8 +2,6 @@
 
 Use Kafka Connect to transfer data in real-time between a source and sink with an event stream processor that can perform data transformations.
 
-> **Note**: See this blog post explaining the design of the [event stream processing framework](https://blog.tonysneed.com/2020/06/25/event-stream-processing-micro-framework-apache-kafka/) used here.
-
 ### Prerequisites
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/).
@@ -44,7 +42,7 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
    ```
 
 3. Register JDBC source connector.
-   - JDBC connector [features](https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/index.html#features).
+   - JDBC connector [features](https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/index.html#features) and [deep dive](https://www.confluent.io/blog/kafka-connect-deep-dive-jdbc-source-connector/).
    - JDBC connector [configuration](https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/source_config_options.html).
 
    - *Option 1*: Upload the connector config `json` file using the **Control Center** user interface.
@@ -123,3 +121,93 @@ Use Kafka Connect to transfer data in real-time between a source and sink with a
 
 ## Worker
 
+> **Note**: See this blog post explaining the design of the [event stream processing framework](https://blog.tonysneed.com/2020/06/25/event-stream-processing-micro-framework-apache-kafka/) used here.
+
+1. Create a .NET Core Worker Service.
+2. Add packages required for hosting and event processing with Protobuf.
+   - Microsoft.Extensions.Hosting
+   - Confluent.Kafka
+   - EventStreamProcessing.Kafka
+   - Confluent.SchemaRegistry.Serdes.Protobuf
+   - Google.Protobuf
+   - Grpc.Core
+   - Grpc.Tools
+3. Add **person-sink.v1.proto** to ProtoLibrary/Protos.
+   - Merge `first_name` and `last_name` into `name`.
+   ```protobuf
+   syntax = "proto3";
+
+   option csharp_namespace = "Protos.Sink.v1";
+
+   import "google/protobuf/timestamp.proto";
+
+   message person {
+   int32 person_id = 1;
+   string name = 2;
+   string favorite_color = 3;
+   int32 age = 4;
+   google.protobuf.Timestamp row_version = 5;
+   }
+   ```
+4. Include Proto files from ProtoLibrary in Worker.csproj.
+   ```xml
+   <ItemGroup>
+     <Protobuf Include="../ProtoLibrary/Protos/**/*.proto" />
+   </ItemGroup>
+   ```
+5. Add a `TransformHandler` class to the **Handlers** folder.
+   - Override `HandleMessage` to transform source `Person` to sink `Person`.
+     - Merge `first_name`, `last_name` into `name`.
+   ```csharp
+   public override async Task<Message> HandleMessage(Message sourceMessage)
+   {
+      // Convert message from source to sink format
+      var message = (Message<Confluent.Kafka.Ignore, Protos.Source.v1.person>)sourceMessage;
+      var key = new Protos.Sink.v1.Key
+      {
+         PersonId = message.Value.PersonId
+      };
+      var value = new Protos.Sink.v1.person
+      {
+         PersonId = message.Value.PersonId,
+         Name = $"{message.Value.FirstName} {message.Value.LastName}",
+         FavoriteColor = message.Value.FavoriteColor,
+         Age = message.Value.Age,
+         RowVersion = message.Value.RowVersion
+      };
+
+      // Call next handler
+      var sinkMessage = new Message<Protos.Sink.v1.Key, Protos.Sink.v1.person>(key, value);
+      logger.LogInformation($"Transform handler: {sinkMessage.Key} {sinkMessage.Value}");
+      return await base.HandleMessage(sinkMessage);
+   }
+   ```
+6. In `Program.Main` add async event processor.
+   ```csharp
+   services.AddSingleton<IEventProcessorWithResult<Result>>(sp =>
+   {
+      // Get logger
+      var logger = sp.GetRequiredService<ILogger>();
+
+      // Create consumer, producer
+      var kafkaConsumer = KafkaUtils.CreateConsumer<SourcePerson>(
+         brokerOptions, consumerOptions.TopicsList, logger);
+      var kafkaProducer = KafkaUtils.CreateProducer<SinkKey, SinkPerson>(
+         brokerOptions, logger);
+
+      // Return event processor using async producer
+      return new KafkaEventProcessorWithResult<Ignore, SourcePerson, SinkKey, SinkPerson>(
+         new KafkaEventConsumer<Ignore, SourcePerson>(kafkaConsumer, logger),
+         new KafkaEventProducerAsync<SinkKey, SinkPerson>(kafkaProducer, producerOptions.Topic),
+         new TransformHandler(logger));
+   });
+   ```
+7. In `KafkaWorker.ExecuteAsync` call `eventProcessor.ProcessWithResult`.
+   ```csharp
+   var deliveryResult = await eventProcessor.ProcessWithResult(cancellationToken);
+   if (deliveryResult != null)
+      logger.LogInformation($"delivered to: {deliveryResult.TopicPartitionOffset}");
+   ```
+6. Run the worker project in the debugger.
+   - Set a breakpoint in both `KafkaWorker` and `TransformHandler`.
+   - Validate that records from Postgres are written to MongoDB.
