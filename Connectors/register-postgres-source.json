@@ -1,0 +1,18 @@
+{
+    "name": "postgres-source",
+    "config": {
+      "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+      "tasks.max": "1",
+      "key.converter": "io.confluent.connect.protobuf.ProtobufConverter",
+      "key.converter.schema.registry.url": "http://schema-registry:8081",
+      "value.converter": "io.confluent.connect.protobuf.ProtobufConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "connection.url": "jdbc:postgresql://postgres:5432/source-database",
+      "connection.user": "postgres",
+      "connection.password": "mypassword",
+      "mode": "timestamp+incrementing",
+      "incrementing.column.name": "person_id",
+      "timestamp.column.name": "row_version",
+      "topic.prefix": "source-data-"
+    }
+  }

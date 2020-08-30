@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option csharp_namespace = "Protos.Source.v1";
+
+import "google/protobuf/timestamp.proto";
+
+message person {
+  int32 person_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string favorite_color = 4;
+  int32 age = 5;
+  google.protobuf.Timestamp row_version = 6;
+}

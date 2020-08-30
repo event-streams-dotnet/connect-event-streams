@@ -1,0 +1,15 @@
+{
+    "name": "mongo-sink",
+    "config": {
+        "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+        "tasks.max": "1",
+        "topics":"sink-data-person",
+        "connection.uri":"mongodb://root:rootpassword@mongo:27017",
+        "database":"sink-database",
+        "collection":"person",
+        "key.converter": "io.confluent.connect.protobuf.ProtobufConverter",
+        "key.converter.schema.registry.url": "http://schema-registry:8081",
+        "value.converter": "io.confluent.connect.protobuf.ProtobufConverter",
+        "value.converter.schema.registry.url": "http://schema-registry:8081"
+    }
+}

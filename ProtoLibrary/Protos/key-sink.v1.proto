@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "Protos.v1";
+option csharp_namespace = "Protos.Sink.v1";
 
 message Key {
   int32 person_id = 1;
