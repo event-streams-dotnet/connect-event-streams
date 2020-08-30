@@ -5,14 +5,17 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+// Alias
+using Result = Confluent.Kafka.DeliveryResult<Protos.Sink.v1.Key, Protos.Sink.v1.person>;
+
 namespace Worker
 {
     public class KafkaWorker : BackgroundService
     {
-        private readonly IEventProcessor eventProcessor;
+        private readonly IEventProcessorWithResult<Result> eventProcessor;
         private readonly ILogger logger;
 
-        public KafkaWorker(IEventProcessor eventProcessor, ILogger logger)
+        public KafkaWorker(IEventProcessorWithResult<Result> eventProcessor, ILogger logger)
         {
             this.eventProcessor = eventProcessor;
             this.logger = logger;
@@ -22,10 +25,12 @@ namespace Worker
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                logger.LogInformation("Worker processing event at: {time}", DateTimeOffset.Now);
+                logger.LogInformation($"Worker processing event at: {DateTimeOffset.Now}");
 
                 // Process event
-                await eventProcessor.Process(cancellationToken);
+                var deliveryResult = await eventProcessor.ProcessWithResult(cancellationToken);
+                if (deliveryResult != null)
+                    logger.LogInformation($"delivered to: {deliveryResult.TopicPartitionOffset}");
             }
         }
     }

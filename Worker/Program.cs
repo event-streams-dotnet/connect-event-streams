@@ -8,6 +8,12 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using Worker.Handlers;
 
+// Aliases
+using SourcePerson = Protos.Source.v1.person;
+using SinkKey = Protos.Sink.v1.Key;
+using SinkPerson = Protos.Sink.v1.person;
+using Result = Confluent.Kafka.DeliveryResult<Protos.Sink.v1.Key, Protos.Sink.v1.person>;
+
 namespace Worker
 {
     class Program
@@ -26,14 +32,14 @@ namespace Worker
                     var brokerOptions = hostContext.Configuration
                         .GetSection(nameof(BrokerOptions))
                         .Get<BrokerOptions>();
-                    services.AddSingleton(brokerOptions);
                     var consumerOptions = hostContext.Configuration
                         .GetSection(nameof(ConsumerOptions))
                         .Get<ConsumerOptions>();
-                    services.AddSingleton(consumerOptions);
                     var producerOptions = hostContext.Configuration
                         .GetSection(nameof(ProducerOptions))
                         .Get<ProducerOptions>();
+                    services.AddSingleton(brokerOptions);
+                    services.AddSingleton(consumerOptions);
                     services.AddSingleton(producerOptions);
 
                     // Add logger
@@ -47,23 +53,21 @@ namespace Worker
                     });
 
                     // Add event processor
-                    services.AddSingleton<IEventProcessor>(sp =>
+                    services.AddSingleton<IEventProcessorWithResult<Result>>(sp =>
                     {
                         // Get logger
                         var logger = sp.GetRequiredService<ILogger>();
 
-                        // Create consumer
-                        var kafkaConsumer = KafkaUtils.CreateConsumer<Protos.Source.v1.person>(
+                        // Create consumer, producer
+                        var kafkaConsumer = KafkaUtils.CreateConsumer<SourcePerson>(
                             brokerOptions, consumerOptions.TopicsList, logger);
-
-                        // Create producer
-                        var kafkaProducer = KafkaUtils.CreateProducer<Protos.Sink.v1.Key, Protos.Sink.v1.person>(
+                        var kafkaProducer = KafkaUtils.CreateProducer<SinkKey, SinkPerson>(
                             brokerOptions, logger);
 
-                        // Create event processor with handlers
-                        return new KafkaEventProcessor<Ignore, Protos.Source.v1.person, Protos.Sink.v1.Key, Protos.Sink.v1.person>(
-                            new KafkaEventConsumer<Ignore, Protos.Source.v1.person>(kafkaConsumer, logger),
-                            new KafkaEventProducer<Protos.Sink.v1.Key, Protos.Sink.v1.person>(kafkaProducer, producerOptions.Topic, logger),
+                        // Return event processor using async producer
+                        return new KafkaEventProcessorWithResult<Ignore, SourcePerson, SinkKey, SinkPerson>(
+                            new KafkaEventConsumer<Ignore, SourcePerson>(kafkaConsumer, logger),
+                            new KafkaEventProducerAsync<SinkKey, SinkPerson>(kafkaProducer, producerOptions.Topic),
                             new TransformHandler(logger));
                     });
 
