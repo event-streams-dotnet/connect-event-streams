@@ -1,0 +1,16 @@
+{
+  "name": "postgres-source",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    "connection.url": "jdbc:postgresql://postgres:5432/sink-database",
+    "connection.user": "postgres",
+    "connection.password": "mypassword",
+    "insert.mode": "upsert",
+    "delete.enabled": "true",
+    "pk.mode": "record_key",
+    "pk.fields": [
+      "person_id"
+    ]  
+  }
+}
