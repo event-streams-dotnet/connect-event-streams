@@ -1,0 +1,16 @@
+{
+    "connector.class": "PostgresCdcSource",
+    "name": "PostgresCdcSourceConnector_0",
+    "kafka.api.key": "",
+    "kafka.api.secret": "",
+    "database.hostname": "confluent-poc-postgres.cgqehjmteh2s.eu-west-1.rds.amazonaws.com",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "mypassword",
+    "database.dbname": "postgres",
+    "database.server.name": "source_data",
+    "table.whitelist":"public.person",
+    "plugin.name": "pgoutput",
+    "output.data.format": "JSON",
+    "tasks.max": "1"
+}

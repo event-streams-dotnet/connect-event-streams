@@ -1,0 +1,22 @@
+{
+    "connector.class": "PostgresSink",
+    "name": "PostgresSinkCloudConnector_1",
+    "input.data.format": "JSON_SR",
+    "kafka.api.key": "",
+    "kafka.api.secret": "",
+    "connection.host": "confluent-poc-postgres.cgqehjmteh2s.eu-west-1.rds.amazonaws.com",
+    "connection.port": "5432",
+    "connection.user": "postgres",
+    "connection.password": "mypassword",
+    "db.name": "postgres",
+    "topics": "source_data.public.person",
+    "table.name.format": "public.kafka_person",
+    "insert.mode": "UPSERT",
+    "db.timezone": "UTC",
+    "auto.create": "true",
+    "auto.evolve": "true",
+    "batch.sizes": "1",
+    "pk.mode": "record_value",
+    "pk.fields": "person_id",
+    "tasks.max": "1"
+}
