@@ -1,21 +1,20 @@
-"connector.class": "PostgresSource",
-"name": "PostgresSourceConnector_1",
-"kafka.api.key": "",
-"kafka.api.secret": "",
-"topic.prefix": "schema-proto-",
-"connection.host": "confluent-poc-postgres.cgqehjmteh2s.eu-west-1.rds.amazonaws.com",
-"connection.port": "5432",
-"connection.user": "postgres",
-"db.name": "postgres",
-"table.whitelist": [
-    "person"
-],
-"timestamp.column.name": "created_on",
-"table.types": [
-    "TABLE"
-],
-"schema.pattern": "public",
-"db.timezone": "UTC",
-"output.data.format": "PROTOBUF",
-"tasks.max": "1"
+{
+  "connector.class": "PostgresCdcSource",
+  "name": "PostgresCdcSourceConnector_0",
+  "database.hostname": "confluent-poc-postgres.cgqehjmteh2s.eu-west-1.rds.amazonaws.com",
+  "kafka.api.key": "ZGR6PYQUFB5FSHWR",
+  "kafka.api.secret": "TjqQuUNpX9oG9bPOgZYmOqr6xIdoaLkQxqIPrmDH9QHC1JXjwIhybZ3foQS+DN1A",
+  "database.port": "5432",
+  "database.user": "postgres",
+  "database.dbname": "postgres",
+  "database.password": "mypassword",
+  "database.server.name": "cdc",
+  "table.whitelist": "public.person",
+  "tombstones.on.delete": "false",
+  "plugin.name": "pgoutput",
+  "output.data.format": "JSON",
+  "tasks.max": "1",
+  "schema.registry.url":"https://psrc-lo5k9.eu-central-1.aws.confluent.cloud",
+  "basic.auth.credentials.source":"USER_INFO",
+  "schema.registry.basic.auth.user.info":"ADZNUUNUGMDXM3NV:rHZIhf/LK5S+NoSMvimSLGlEMPI+UrWPTeh67RhUTUHArjT2rgjGhLHbKSmVrhML"
 }
