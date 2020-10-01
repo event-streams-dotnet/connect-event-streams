@@ -8,8 +8,11 @@
     "connection.host": "cluster0-4aooi.mongodb.net",
     "connection.user": "kafka-connect",
     "connection.password": "MyPassword",
-    "database": "public",
-    "collection": "person",
+    "database": "sink-database",
+    "collection": "demo-person-sink",
     "tasks.max": "1",
+    "schema.registry.url":"https://psrc-lo5k9.eu-central-1.aws.confluent.cloud",
+    "basic.auth.credentials.source":"USER_INFO",
+    "schema.registry.basic.auth.user.info":"ADZNUUNUGMDXM3NV:rHZIhf/LK5S+NoSMvimSLGlEMPI+UrWPTeh67RhUTUHArjT2rgjGhLHbKSmVrhML",
     "change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.debezium.rdbms.postgres.PostgresHandler"
 }
