@@ -1,0 +1,18 @@
+{
+    "connector.class": "MongoDbAtlasSink",
+    "name": "MongoDbAtlasSinkConnector_0",
+    "input.data.format": "PROTOBUF",
+    "kafka.api.key": "ZGR6PYQUFB5FSHWR",
+    "kafka.api.secret": "TjqQuUNpX9oG9bPOgZYmOqr6xIdoaLkQxqIPrmDH9QHC1JXjwIhybZ3foQS+DN1A",
+    "topics": "tony.public.person",
+    "connection.host": "cluster0-4aooi.mongodb.net",
+    "connection.user": "kafka-connect",
+    "connection.password": "MyPassword",
+    "database": "sink-database",
+    "collection": "demo-person-sink",
+    "tasks.max": "1",
+    "schema.registry.url":"https://psrc-lo5k9.eu-central-1.aws.confluent.cloud",
+    "basic.auth.credentials.source":"USER_INFO",
+    "schema.registry.basic.auth.user.info":"ADZNUUNUGMDXM3NV:rHZIhf/LK5S+NoSMvimSLGlEMPI+UrWPTeh67RhUTUHArjT2rgjGhLHbKSmVrhML",
+    "change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.debezium.rdbms.postgres.PostgresHandler"
+}
